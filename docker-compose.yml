@@ -1,0 +1,108 @@
+version: '3.8'
+
+volumes:
+  base:
+  redis:
+  postgres:
+    
+networks:
+  private:
+  public:
+
+services:
+  base:
+    image: chatwoot/chatwoot:latest
+    environment:
+      SECRET_KEY_BASE: ${SECRET_KEY_BASE}
+      FRONTEND_URL: ${FRONTEND_URL}
+      ASSET_CDN_HOST: ${ASSET_CDN_HOST}
+      FORCE_SSL: ${FORCE_SSL}
+      ENABLE_ACCOUNT_SIGNUP: ${ENABLE_ACCOUNT_SIGNUP}
+      REDIS_URL: ${REDIS_URL}
+      REDIS_PASSWORD: ${REDIS_PASSWORD}
+      REDIS_SENTINELS: ${REDIS_SENTINELS}
+      REDIS_SENTINEL_MASTER_NAME: ${REDIS_SENTINEL_MASTER_NAME}
+      POSTGRES_HOST: ${POSTGRES_HOST}
+      POSTGRES_USERNAME: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      RAILS_ENV: ${RAILS_ENV}
+      RAILS_MAX_THREADS: ${RAILS_MAX_THREADS}
+      MAILER_SENDER_EMAIL: ${MAILER_SENDER_EMAIL}
+      SMTP_DOMAIN: ${SMTP_DOMAIN}
+      SMTP_ADDRESS: ${SMTP_ADDRESS}
+      SMTP_PORT: ${SMTP_PORT}
+      SMTP_USERNAME: ${SMTP_USERNAME}
+      SMTP_PASSWORD: ${SMTP_PASSWORD}
+      SMTP_AUTHENTICATION: ${SMTP_AUTHENTICATION}
+      SMTP_ENABLE_STARTTLS_AUTO: ${SMTP_ENABLE_STARTTLS_AUTO}
+      SMTP_OPENSSL_VERIFY_MODE: ${SMTP_OPENSSL_VERIFY_MODE}
+      SMTP_TLS: ${SMTP_TLS}
+      MAILER_INBOUND_EMAIL_DOMAIN: ${MAILER_INBOUND_EMAIL_DOMAIN}
+      RAILS_INBOUND_EMAIL_SERVICE: ${RAILS_INBOUND_EMAIL_SERVICE}
+      RAILS_INBOUND_EMAIL_PASSWORD: ${RAILS_INBOUND_EMAIL_PASSWORD}
+      MAILGUN_INGRESS_SIGNING_KEY: ${MAILGUN_INGRESS_SIGNING_KEY}
+      MANDRILL_INGRESS_API_KEY: ${MANDRILL_INGRESS_API_KEY}
+      ACTIVE_STORAGE_SERVICE:  ${ACTIVE_STORAGE_SERVICE}
+      RAILS_LOG_TO_STDOUT: ${RAILS_LOG_TO_STDOUT}
+      LOG_LEVEL: ${LOG_LEVEL}
+      LOG_SIZE: ${LOG_SIZE}
+      FB_VERIFY_TOKEN: ${FB_VERIFY_TOKEN}
+      FB_APP_SECRET: ${FB_APP_SECRET}
+      FB_APP_ID: ${FB_APP_ID}
+      IG_VERIFY_TOKEN: ${IG_VERIFY_TOKEN}
+      TWITTER_APP_ID: ${TWITTER_APP_ID}
+      TWITTER_CONSUMER_KEY: ${TWITTER_CONSUMER_KEY}
+      TWITTER_CONSUMER_SECRET: ${TWITTER_CONSUMER_SECRET}
+      TWITTER_ENVIRONMENT: ${TWITTER_ENVIRONMENT}
+      SLACK_CLIENT_ID: ${SLACK_CLIENT_ID}
+      SLACK_CLIENT_SECRET: ${SLACK_CLIENT_SECRET}
+      IOS_APP_ID: ${IOS_APP_ID}
+      ANDROID_BUNDLE_ID: ${ANDROID_BUNDLE_ID}
+      ANDROID_SHA256_CERT_FINGERPRINT: ${ANDROID_SHA256_CERT_FINGERPRINT}
+      USE_INBOX_AVATAR_FOR_BOT: ${USE_INBOX_AVATAR_FOR_BOT}
+      ENABLE_PUSH_RELAY_SERVER: ${ENABLE_PUSH_RELAY_SERVER}
+      DIRECT_UPLOADS_ENABLED: ${DIRECT_UPLOADS_ENABLED}
+    volumes:
+      - base:/app/storage
+    networks:
+      - private
+      - public
+
+  rails:
+    ports:
+      - '${STACK_CODE}67:3000'
+    environment:
+      - NODE_ENV=production
+      - RAILS_ENV=production
+      - INSTALLATION_ENV=docker
+    entrypoint: docker/entrypoints/rails.sh
+    command: ['bundle', 'exec', 'rails', 's', '-p', '3000', '-b', '0.0.0.0']
+
+  sidekiq:
+    environment:
+      - NODE_ENV=production
+      - RAILS_ENV=production
+      - INSTALLATION_ENV=docker
+    networks:
+      - private
+      - public
+    command: ['bundle', 'exec', 'sidekiq', '-C', 'config/sidekiq.yml']
+
+  postgres:
+    image: postgres:12
+    ports:
+      - '${STACK_CODE}32:5432'
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB}
+      POSTGRES_USER: ${POSTGRES_USERNAME}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+
+  redis:
+    image: redis:alpine
+    command: ["sh", "-c", "redis-server --requirepass \"$REDIS_PASSWORD\""]
+    volumes:
+      - redis:/data
+    ports:
+      - '${STACK_CODE}79:6379'
